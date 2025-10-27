@@ -1,0 +1,59 @@
+import cv2
+import os
+
+# Initialize webcam
+cam = cv2.VideoCapture(0)
+cam.set(3, 640)  # width
+cam.set(4, 480)  # height
+
+# Load Haar cascade for face detection
+face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+# Ensure dataset directory exists
+dataset_dir = 'dataset'
+if not os.path.exists(dataset_dir):
+    os.makedirs(dataset_dir)
+    print(f"[INFO] Created directory: {dataset_dir}")
+
+# Ask for user ID
+face_id = input('\nEnter numeric user ID and press <Enter>: ')
+print("\n[INFO] Initializing face capture. Look at the camera...")
+
+count = 0
+
+while True:
+    ret, img = cam.read()
+    if not ret:
+        print("[ERROR] Failed to capture image.")
+        break
+
+    # Flip horizontally for natural viewing
+    img = cv2.flip(img, 1)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = face_detector.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+
+    for (x, y, w, h) in faces:
+        count += 1
+
+        # Draw rectangle around the face
+        cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+        # Save captured image to dataset folder
+        filename = os.path.join(dataset_dir, f"User.{face_id}.{count}.jpg")
+        cv2.imwrite(filename, gray[y:y+h, x:x+w])
+
+        cv2.imshow('Capturing Faces', img)
+
+    # Stop conditions
+    k = cv2.waitKey(100) & 0xff
+    if k == 27:  # ESC key
+        print("[INFO] Capture interrupted by user.")
+        break
+    elif count >= 30:  # 30 samples per user
+        print("[INFO] 30 face samples captured, stopping...")
+        break
+
+# Cleanup
+cam.release()
+cv2.destroyAllWindows()
+print("\n[INFO] Exiting program and cleaning up.")
